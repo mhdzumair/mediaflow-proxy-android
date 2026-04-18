@@ -1,0 +1,66 @@
+# Built outputs
+*.iml
+.gradle
+/local.properties
+build/
+/captures
+local.properties
+
+# IDE
+/.idea
+.DS_Store
+*.swp
+*.swo
+
+# Native build
+.externalNativeBuild
+.cxx
+
+# Android Studio navigation editor temp files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# IntelliJ
+*.iml
+out/
+.idea/
+
+# Keystore (never commit)
+*.keystore
+*.jks
+release-signing.properties
+
+# Native proxy binaries (built from mediaflow-proxy-light — see README).
+# Production APKs in the GitHub release include these; fresh clones don't.
+app/src/main/jniLibs/*/libmediaflow-proxy.so
+
+# Google Services
+google-services.json
+
+# Gradle cache
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Proguard
+proguard/
+
+# Log files
+*.log
+
+# OS files
+Thumbs.db
+ehthumbs.db
+
+# Environment / secrets
+.env
+*.env
+secrets.properties

@@ -1,0 +1,3 @@
+-keep class com.mediaflow.proxy.** { *; }
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable

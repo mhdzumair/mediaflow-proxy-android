@@ -1,0 +1,141 @@
+name: Release APK
+
+on:
+  release:
+    types: [ created ]
+  workflow_dispatch:
+    inputs:
+      proxy_release:
+        description: "mediaflow-proxy-light release tag to bundle (leave empty for latest)"
+        default: ""
+        required: false
+
+env:
+  # Proxy binaries are downloaded from this repo's releases (per-ABI tarballs).
+  PROXY_REPO: mhdzumair/mediaflow-proxy-light
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build + publish APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Android app
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # -----------------------------------------------------------------------
+      # Download pre-built libmediaflow-proxy.so per ABI from a mediaflow-proxy-light
+      # GitHub release.  Defaults to the newest release; overridable via the
+      # `proxy_release` workflow_dispatch input.  No Rust toolchain or NDK needed.
+      # -----------------------------------------------------------------------
+      - name: Download proxy binaries from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROXY_TAG_INPUT: ${{ github.event.inputs.proxy_release }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$PROXY_TAG_INPUT" ]; then
+            PROXY_TAG="$PROXY_TAG_INPUT"
+          else
+            PROXY_TAG=$(gh release view --repo "$PROXY_REPO" --json tagName -q .tagName)
+          fi
+          echo "Bundling proxy release: $PROXY_TAG"
+
+          mkdir -p _proxy_assets
+          gh release download "$PROXY_TAG" \
+            --repo "$PROXY_REPO" \
+            --pattern 'mediaflow-proxy-light-android-*.tar.gz' \
+            --dir _proxy_assets
+
+          echo "Downloaded:"
+          ls -l _proxy_assets
+
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+            tarfile="_proxy_assets/mediaflow-proxy-light-android-${abi}.tar.gz"
+            if [ ! -f "$tarfile" ]; then
+              echo "ERROR: $tarfile not present in release $PROXY_TAG" >&2
+              exit 1
+            fi
+            dest="app/src/main/jniLibs/${abi}"
+            mkdir -p "$dest"
+            tar -xzf "$tarfile" -C "$dest"
+            if [ ! -f "$dest/libmediaflow-proxy.so" ]; then
+              echo "ERROR: $tarfile did not contain libmediaflow-proxy.so" >&2
+              exit 1
+            fi
+            echo "  $abi: $(du -h "$dest/libmediaflow-proxy.so" | cut -f1)"
+          done
+
+      # -----------------------------------------------------------------------
+      # Decode the release keystore into app/release.keystore (gitignored).
+      # build.gradle.kts picks it up automatically when the SIGNING_* env vars
+      # are present.  Missing secrets → unsigned APK (flagged below).
+      # -----------------------------------------------------------------------
+      - name: Decode signing keystore
+        if: ${{ env.SIGNING_KEY_STORE_BASE64 != '' }}
+        env:
+          SIGNING_KEY_STORE_BASE64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
+        run: |
+          echo "$SIGNING_KEY_STORE_BASE64" | base64 -d > app/release.keystore
+          echo "Keystore size: $(wc -c < app/release.keystore) bytes"
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Assemble release APKs (per-ABI + universal)
+        env:
+          SIGNING_KEY_STORE_PASSWORD: ${{ secrets.SIGNING_KEY_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: List release APKs
+        run: ls -lh app/build/outputs/apk/release/
+
+      # -----------------------------------------------------------------------
+      # Upload all APKs the `splits { abi }` block produced (four per-ABI +
+      # one universal) to the triggering release.  Also upload as workflow
+      # artifacts so workflow_dispatch runs emit downloads.
+      # -----------------------------------------------------------------------
+      - name: Upload APKs to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          cd app/build/outputs/apk/release
+          shopt -s nullglob
+          for apk in app-*-release*.apk; do
+            # app-arm64-v8a-release.apk       -> mediaflow-proxy-arm64-v8a.apk
+            # app-universal-release.apk        -> mediaflow-proxy-universal.apk
+            # app-release-unsigned.apk (fallback) -> mediaflow-proxy-unsigned.apk
+            variant=$(echo "$apk" | sed -E 's/^app-(.*)-release(-unsigned)?\.apk$/\1\2/')
+            renamed="mediaflow-proxy-${variant}.apk"
+            cp "$apk" "$renamed"
+            echo "Uploading $renamed …"
+            gh release upload "$TAG" "$renamed" --clobber
+          done
+
+      - name: Upload APKs as workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: mediaflow-proxy-apks
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
