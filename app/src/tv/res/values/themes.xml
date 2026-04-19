@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Main browse screen (BrowseSupportFragment). -->
+    <style name="Theme.MediaflowTv" parent="Theme.Leanback.Browse" />
+
+    <!-- GuidedStepSupportFragment modal. -->
+    <style name="Theme.MediaflowTv.GuidedStep" parent="Theme.Leanback.GuidedStep" />
+
+    <!-- Leanback preferences host (Settings screen).  Translucent so the
+         parent Dashboard shows through the left pane (matches the Android TV
+         system-settings pattern where the previous screen stays visible as a
+         dimmed backdrop while the right pane holds the active screen). -->
+    <style name="Theme.MediaflowTv.Preferences" parent="Theme.Leanback">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+    </style>
+
+    <!-- Plain TV screen for logs / metrics (no Leanback chrome). -->
+    <style name="Theme.MediaflowTv.Plain" parent="android:Theme.DeviceDefault.NoActionBar" />
+
+</resources>

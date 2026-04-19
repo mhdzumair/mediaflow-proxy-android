@@ -17,7 +17,10 @@ class ProxyManager(private val context: Context) {
     private var process: Process? = null
     private val startMutex = Mutex()
 
-    private val _logs = MutableSharedFlow<String>(extraBufferCapacity = 500)
+    // replay=500 so any late subscriber (e.g. TV Logs activity launched after
+    // the proxy has been emitting for a while) immediately sees the recent
+    // history instead of starting from an empty buffer.
+    private val _logs = MutableSharedFlow<String>(replay = 500, extraBufferCapacity = 100)
     val logs: SharedFlow<String> = _logs
 
     private val _isRunning = kotlinx.coroutines.flow.MutableStateFlow(false)

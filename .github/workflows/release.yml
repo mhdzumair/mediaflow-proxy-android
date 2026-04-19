@@ -1,4 +1,4 @@
-name: Release APK
+name: Release APKs
 
 on:
   release:
@@ -18,8 +18,8 @@ permissions:
   contents: write
 
 jobs:
-  build-apk:
-    name: Build + publish APK
+  build-apks:
+    name: Build + publish APKs (mobile + tv)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Android app
@@ -75,11 +75,6 @@ jobs:
             echo "  $abi: $(du -h "$dest/libmediaflow-proxy.so" | cut -f1)"
           done
 
-      # -----------------------------------------------------------------------
-      # Decode the release keystore into app/release.keystore (gitignored).
-      # build.gradle.kts picks it up automatically when the SIGNING_* env vars
-      # are present.  Missing secrets → unsigned APK (flagged below).
-      # -----------------------------------------------------------------------
       - name: Decode signing keystore
         if: ${{ env.SIGNING_KEY_STORE_BASE64 != '' }}
         env:
@@ -96,22 +91,29 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Assemble release APKs (per-ABI + universal)
+      # -----------------------------------------------------------------------
+      # Build both flavors in one Gradle invocation.  Each flavor emits
+      # 5 APKs (4 per-ABI + 1 universal) × 2 flavors = 10 APKs total,
+      # written to app/build/outputs/apk/<flavor>/release/.
+      # -----------------------------------------------------------------------
+      - name: Assemble mobile + tv release APKs
         env:
           SIGNING_KEY_STORE_PASSWORD: ${{ secrets.SIGNING_KEY_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon
+          ./gradlew :app:assembleMobileRelease :app:assembleTvRelease --no-daemon
 
       - name: List release APKs
-        run: ls -lh app/build/outputs/apk/release/
+        run: |
+          ls -lh app/build/outputs/apk/mobile/release/
+          ls -lh app/build/outputs/apk/tv/release/
 
       # -----------------------------------------------------------------------
-      # Upload all APKs the `splits { abi }` block produced (four per-ABI +
-      # one universal) to the triggering release.  Also upload as workflow
-      # artifacts so workflow_dispatch runs emit downloads.
+      # Rename + upload.  Gradle emits `app-<flavor>-<abi>-release.apk` — we
+      # rename to `mediaflow-proxy-<flavor>-<abi>.apk` so the release asset
+      # list tells the user exactly which APK to pick.
       # -----------------------------------------------------------------------
       - name: Upload APKs to release
         if: github.event_name == 'release'
@@ -120,22 +122,27 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
-          cd app/build/outputs/apk/release
           shopt -s nullglob
-          for apk in app-*-release*.apk; do
-            # app-arm64-v8a-release.apk       -> mediaflow-proxy-arm64-v8a.apk
-            # app-universal-release.apk        -> mediaflow-proxy-universal.apk
-            # app-release-unsigned.apk (fallback) -> mediaflow-proxy-unsigned.apk
-            variant=$(echo "$apk" | sed -E 's/^app-(.*)-release(-unsigned)?\.apk$/\1\2/')
-            renamed="mediaflow-proxy-${variant}.apk"
-            cp "$apk" "$renamed"
-            echo "Uploading $renamed …"
-            gh release upload "$TAG" "$renamed" --clobber
+          staging=$(mktemp -d)
+          for flavor in mobile tv; do
+            for apk in app/build/outputs/apk/"$flavor"/release/app-"$flavor"-*-release*.apk; do
+              base=$(basename "$apk")
+              # app-mobile-arm64-v8a-release.apk            -> mediaflow-proxy-mobile-arm64-v8a.apk
+              # app-tv-universal-release.apk                 -> mediaflow-proxy-tv-universal.apk
+              # app-mobile-release-unsigned.apk (fallback)   -> mediaflow-proxy-mobile-unsigned.apk
+              variant=$(echo "$base" | sed -E "s/^app-${flavor}-(.*)-release(-unsigned)?\.apk$/\1\2/")
+              renamed="mediaflow-proxy-${flavor}-${variant}.apk"
+              cp "$apk" "$staging/$renamed"
+              echo "Uploading $renamed …"
+              gh release upload "$TAG" "$staging/$renamed" --clobber
+            done
           done
 
       - name: Upload APKs as workflow artifact
         uses: actions/upload-artifact@v5
         with:
           name: mediaflow-proxy-apks
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/mobile/release/*.apk
+            app/build/outputs/apk/tv/release/*.apk
           if-no-files-found: error

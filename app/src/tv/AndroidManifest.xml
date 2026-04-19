@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV flavor manifest overlay: Leanback theme + Android TV launcher entry
+     + required touch/leanback feature flags so Play Store filters correctly. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <application
+        android:banner="@drawable/tv_banner"
+        android:theme="@style/Theme.MediaflowTv">
+
+        <activity
+            android:name=".tv.TvMainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".tv.TvSettingsActivity"
+            android:exported="false"
+            android:label="Settings"
+            android:theme="@style/Theme.MediaflowTv.Preferences" />
+
+        <activity
+            android:name=".tv.TvLogsActivity"
+            android:exported="false"
+            android:label="Logs"
+            android:theme="@style/Theme.MediaflowTv.Plain" />
+
+        <activity
+            android:name=".tv.TvMetricsActivity"
+            android:exported="false"
+            android:label="Metrics"
+            android:theme="@style/Theme.MediaflowTv.Plain" />
+
+    </application>
+
+</manifest>

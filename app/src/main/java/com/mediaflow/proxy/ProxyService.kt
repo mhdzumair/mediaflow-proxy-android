@@ -131,11 +131,16 @@ class ProxyService : Service() {
     }
 
     private fun buildNotification(status: String, isRunning: Boolean): Notification {
+        // Launch whichever activity the installed flavor registered as its
+        // launcher entry point (MainActivity for mobile, TvMainActivity for
+        // tv) — the service stays flavor-agnostic by asking PackageManager.
+        val launchIntent = packageManager
+            .getLaunchIntentForPackage(packageName)
+            ?.apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP }
+            ?: Intent()
         val tapIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            },
+            launchIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 

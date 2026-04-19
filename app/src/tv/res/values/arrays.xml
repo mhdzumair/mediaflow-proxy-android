@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="log_level_entries">
+        <item>trace</item>
+        <item>debug</item>
+        <item>info</item>
+        <item>warn</item>
+        <item>error</item>
+    </string-array>
+</resources>

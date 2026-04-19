@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android TV launcher banner.  The Leanback home expects 320x180 dp; the
+     launcher scales any drawable to that box, so a layer-list that composites
+     the existing logo on a solid background is fine. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0F1419" />
+        </shape>
+    </item>
+
+    <item
+        android:gravity="center"
+        android:width="96dp"
+        android:height="96dp"
+        android:drawable="@drawable/mediaflow_logo" />
+
+</layer-list>

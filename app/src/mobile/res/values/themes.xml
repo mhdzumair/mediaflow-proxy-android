@@ -9,5 +9,4 @@
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-    <style name="Theme.Leanback" parent="Theme.Leanback.GuidedStep" />
 </resources>

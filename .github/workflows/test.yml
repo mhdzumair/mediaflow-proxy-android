@@ -75,15 +75,17 @@ jobs:
                mediaflow-android/app/src/main/jniLibs/$abi/libmediaflow-proxy.so
           done
 
-      - name: Assemble debug APK
+      - name: Assemble debug APKs (mobile + tv)
         run: |
           cd mediaflow-android
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
+          ./gradlew :app:assembleMobileDebug :app:assembleTvDebug --no-daemon
 
-      - name: Upload debug APK
+      - name: Upload debug APKs
         uses: actions/upload-artifact@v5
         with:
-          name: app-debug-arm64-smoke.apk
-          path: mediaflow-android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-debug-arm64-smoke
+          path: |
+            mediaflow-android/app/build/outputs/apk/mobile/debug/*.apk
+            mediaflow-android/app/build/outputs/apk/tv/debug/*.apk
           if-no-files-found: error

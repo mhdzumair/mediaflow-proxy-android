@@ -1,19 +1,33 @@
 package com.mediaflow.proxy.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.mediaflow.proxy.ConfigRepository
+import com.mediaflow.proxy.ConfigSerializer
 import com.mediaflow.proxy.MainActivity
 import com.mediaflow.proxy.ProxyConfig
 import com.mediaflow.proxy.databinding.FragmentConfigBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ConfigFragment : Fragment() {
 
@@ -78,6 +92,68 @@ class ConfigFragment : Fragment() {
 
             binding.tvSaveStatus.visibility = View.VISIBLE
             view.postDelayed({ _binding?.tvSaveStatus?.visibility = View.GONE }, 2000)
+        }
+
+        binding.btnImportConfig.setOnClickListener {
+            importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+        }
+        binding.btnExportConfig.setOnClickListener { exportConfig() }
+    }
+
+    // ----- Import / Export -------------------------------------------------
+
+    private val importLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val text = withContext(Dispatchers.IO) {
+                    requireContext().contentResolver.openInputStream(uri)
+                        ?.bufferedReader()?.use { it.readText() }
+                } ?: return@launch
+                val repo = ConfigRepository(requireContext().applicationContext)
+                val current = repo.config.first()
+                val imported = ConfigSerializer.fromJson(text, fallback = current)
+                repo.save(imported)
+                populated = false   // force re-populate from the new config
+                populate(imported)
+                Toast.makeText(
+                    requireContext(),
+                    "Config imported — Save to apply to a running proxy",
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun exportConfig() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val cfg = buildConfig()
+                val json = ConfigSerializer.toJson(cfg)
+                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+                val file = withContext(Dispatchers.IO) {
+                    File(requireContext().cacheDir, "mediaflow-config-$stamp.json")
+                        .apply { writeText(json) }
+                }
+                val uri = FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    file
+                )
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, "MediaFlow Proxy config")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(send, "Export config"))
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

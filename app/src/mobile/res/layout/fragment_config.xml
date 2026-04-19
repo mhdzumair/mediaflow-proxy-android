@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -49,6 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="API Password"
+            app:endIconMode="password_toggle"
             android:layout_marginBottom="8dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_api_password"
@@ -344,6 +346,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Engine Access Token (optional)"
+            app:endIconMode="password_toggle"
             android:layout_marginBottom="16dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_acestream_access_token"
@@ -382,6 +385,32 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Save" />
+
+        <!-- ── Import / Export ───────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_import_config"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="Import"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_export_config"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="Export"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_save_status"

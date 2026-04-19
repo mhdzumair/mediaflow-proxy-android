@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full TV settings screen.  Keys map 1-to-1 to ProxyConfig property names
+     so TvConfigDataStore can read/write the same DataStore as the phone UI. -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="Basic">
+        <EditTextPreference
+            android:key="host"
+            android:title="Listen Host"
+            android:defaultValue="0.0.0.0"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="port"
+            android:title="Listen Port"
+            android:inputType="number"
+            android:defaultValue="8888"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="apiPassword"
+            android:title="API Password"
+            android:defaultValue="mediaflow"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            android:key="autoStart"
+            android:title="Auto-Start on Boot"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Network">
+        <EditTextPreference
+            android:key="connectTimeout"
+            android:title="Connect Timeout (seconds)"
+            android:inputType="number"
+            android:defaultValue="30"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="bufferSizeKb"
+            android:title="Buffer Size (KB)"
+            android:inputType="number"
+            android:defaultValue="256"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            android:key="followRedirects"
+            android:title="Follow Redirects"
+            android:defaultValue="true" />
+        <SwitchPreference
+            android:key="allProxy"
+            android:title="Route All Traffic via Proxy"
+            android:defaultValue="false" />
+        <EditTextPreference
+            android:key="proxyUrl"
+            android:title="Default Proxy URL"
+            android:summary="e.g. http://proxy:8080 or socks5://host:1080"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="transportRoutes"
+            android:title="Transport Routes (JSON)"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="HLS">
+        <EditTextPreference
+            android:key="hlsPrebufferSegments"
+            android:title="Prebuffer Segments"
+            android:inputType="number"
+            android:defaultValue="5"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="hlsSegmentCacheTtl"
+            android:title="Segment Cache TTL (seconds)"
+            android:inputType="number"
+            android:defaultValue="300"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="DASH / MPD">
+        <EditTextPreference
+            android:key="mpdLivePlaylistDepth"
+            android:title="Live Playlist Depth (segments)"
+            android:inputType="number"
+            android:defaultValue="8"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            android:key="mpdRemuxToTs"
+            android:title="Remux DASH to MPEG-TS"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Telegram (optional)">
+        <EditTextPreference
+            android:key="telegramApiId"
+            android:title="API ID"
+            android:inputType="number"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="telegramApiHash"
+            android:title="API Hash"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="telegramSessionString"
+            android:title="Session String"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="telegramMaxConnections"
+            android:title="Max Parallel Connections"
+            android:inputType="number"
+            android:defaultValue="8"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Acestream (optional)">
+        <EditTextPreference
+            android:key="acestreamHost"
+            android:title="Engine Host"
+            android:defaultValue="127.0.0.1"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="acestreamPort"
+            android:title="Engine Port"
+            android:inputType="number"
+            android:defaultValue="6878"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:key="acestreamAccessToken"
+            android:title="Engine Access Token"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Logging">
+        <ListPreference
+            android:key="logLevel"
+            android:title="Log Level"
+            android:entries="@array/log_level_entries"
+            android:entryValues="@array/log_level_entries"
+            android:defaultValue="info"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Overrides for Leanback's default spacing.  By declaring the same resource
+     names the library uses, Android's resource merger takes our values. -->
+<resources>
+
+    <!-- Distance from the bottom of the title strip down to the first row of
+         content.  Default on sw720dp devices is ~80-120dp; we use a tighter
+         value so all three rows (Dashboard / Quick Settings / Advanced) fit
+         comfortably on one 1080p screen. -->
+    <dimen name="lb_browse_rows_margin_top">140dp</dimen>
+
+    <!-- Vertical padding around the heading labels on the left rail — keeps
+         them clustered at the top rather than spread across the full height. -->
+    <dimen name="lb_browse_headers_vertical_margin">8dp</dimen>
+
+</resources>

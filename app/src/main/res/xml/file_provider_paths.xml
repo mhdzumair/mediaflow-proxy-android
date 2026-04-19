@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <cache-path name="apk_updates" path="." />
+    <!-- Cache dir root — used for ad-hoc exports (logs, config JSON) that
+         are handed to the system share sheet via FileProvider. -->
+    <cache-path name="cache" path="." />
 </paths>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F1419">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Proxy Metrics"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/metrics_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#8B949E"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <include android:id="@+id/row_uptime"  layout="@layout/tv_metric_card_wide" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:baselineAligned="false">
+            <include android:id="@+id/card_total_requests"    layout="@layout/tv_metric_card" />
+            <include android:id="@+id/card_active_connections" layout="@layout/tv_metric_card" />
+            <include android:id="@+id/card_bytes_out"          layout="@layout/tv_metric_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:baselineAligned="false">
+            <include android:id="@+id/card_proxy_stream" layout="@layout/tv_metric_card" />
+            <include android:id="@+id/card_hls"          layout="@layout/tv_metric_card" />
+            <include android:id="@+id/card_mpd"          layout="@layout/tv_metric_card" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:baselineAligned="false">
+            <include android:id="@+id/card_telegram"  layout="@layout/tv_metric_card" />
+            <include android:id="@+id/card_extractor" layout="@layout/tv_metric_card" />
+            <!-- empty placeholder for grid alignment -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

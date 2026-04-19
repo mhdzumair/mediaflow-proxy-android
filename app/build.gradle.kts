@@ -26,6 +26,25 @@ android {
         versionName = "1.0.0"
     }
 
+    // Two product flavors — mobile (Material 3 phone/tablet UI) and tv
+    // (Leanback D-pad UI).  Each flavor has its own src/<flavor>/ tree with
+    // flavor-specific manifest, activities, layouts, and theme.  Shared code
+    // (service, extractor plumbing, config repo) lives in src/main/.
+    //
+    // The TV flavor gets its own applicationId suffix so both variants can
+    // coexist on one device and appear as separate Play Store listings.
+    flavorDimensions += "formFactor"
+    productFlavors {
+        create("mobile") {
+            dimension = "formFactor"
+        }
+        create("tv") {
+            dimension = "formFactor"
+            applicationIdSuffix = ".tv"
+            versionNameSuffix = "-tv"
+        }
+    }
+
     signingConfigs {
         if (signingConfigured) {
             create("release") {
@@ -88,7 +107,11 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.datastore.preferences)
     implementation(libs.coroutines.android)
-    implementation(libs.leanback)
     implementation(libs.preference.ktx)
-    implementation(libs.qrcode.kotlin)
+
+    // Leanback is needed only by the tv flavor's BrowseSupportFragment +
+    // GuidedStepSupportFragment — pulling it via tvImplementation keeps it
+    // out of the mobile APK so the phone build stays slim.
+    "tvImplementation"(libs.leanback)
+    "tvImplementation"(libs.leanback.preference)
 }
