@@ -4,6 +4,30 @@ Native Android / Android TV app that runs the Rust
 [mediaflow-proxy-light](https://github.com/mhdzumair/mediaflow-proxy-light) server
 as a foreground service on-device.
 
+## Installation & Play Protect warning
+
+When you side-load the APK, Google Play Protect will flag it as
+**"Harmful app blocked"**. This is a false positive — tap **More details →
+Install anyway** to proceed.
+
+The combination that trips Play Protect's heuristics is:
+
+- The app spawns a native subprocess (`libmediaflow-proxy.so` via `ProcessBuilder`).
+- It opens a TCP listener on `0.0.0.0:8888` for local HTTP access.
+- It requests `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` so streams don't stall when backgrounded.
+- The APK is signed with a self-published certificate, not one linked to a
+  Google Play publisher account.
+
+Each is necessary for the proxy to work (see the architecture section
+below) and nothing is uploaded or exfiltrated. Once the app has an
+established install base / is reviewed by Google, Play Protect stops
+flagging it.
+
+If you want to audit what the spawned binary does, the source is at
+[mediaflow-proxy-light](https://github.com/mhdzumair/mediaflow-proxy-light)
+and every release is reproducibly built from tagged commits by the
+companion CI.
+
 ## Architecture
 
 The proxy binary is **bundled inside the APK** as a regular JNI library
