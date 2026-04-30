@@ -34,13 +34,19 @@ import androidx.leanback.widget.Presenter
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.mediaflow.proxy.BuildConfig
 import com.mediaflow.proxy.ProxyConfig
 import com.mediaflow.proxy.ProxyService
 import com.mediaflow.proxy.R
+import com.mediaflow.proxy.UpdateChecker
+import com.mediaflow.proxy.UpdateInstaller
 import com.mediaflow.proxy.ui.MainViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Leanback entry point for Android TV.  Layout:
@@ -113,6 +119,14 @@ class TvMainActivity : FragmentActivity() {
             Intent(this, ProxyService::class.java), serviceConnection,
             Context.BIND_AUTO_CREATE
         )
+        checkForUpdatesSilent()
+    }
+
+    private fun checkForUpdatesSilent() {
+        lifecycleScope.launch {
+            val info = UpdateChecker.check(this@TvMainActivity, force = false) ?: return@launch
+            if (!isFinishing) showUpdateAvailableDialog(info)
+        }
     }
 
     override fun onDestroy() {
@@ -156,6 +170,9 @@ class TvMainActivity : FragmentActivity() {
         )
         dashboard.add(
             TvAction(ActionId.METRICS, "Metrics", "Requests · bytes · uptime", MUTED, R.drawable.ic_tv_metrics)
+        )
+        dashboard.add(
+            TvAction(ActionId.CHECK_UPDATE, "Check for Updates", "Current: ${BuildConfig.VERSION_NAME}", MUTED, R.drawable.ic_tv_update)
         )
         rowsAdapter.add(ListRow(HeaderItem(0, "Dashboard"), dashboard))
 
@@ -221,6 +238,7 @@ class TvMainActivity : FragmentActivity() {
                 val cfg = repo.config.first()
                 repo.save(cfg.copy(autoStart = !cfg.autoStart))
             }
+            ActionId.CHECK_UPDATE -> checkForUpdatesManual()
             ActionId.ALL_SETTINGS -> startActivity(Intent(this, TvSettingsActivity::class.java))
             ActionId.IMPORT -> importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
             ActionId.EXPORT -> lifecycleScope.launch {
@@ -346,6 +364,74 @@ class TvMainActivity : FragmentActivity() {
         }
     }
 
+    private fun checkForUpdatesManual() {
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Checking for updates…")
+            .setMessage("Please wait")
+            .setCancelable(false)
+            .show()
+        lifecycleScope.launch {
+            val info = UpdateChecker.check(this@TvMainActivity, force = true)
+            dialog.dismiss()
+            if (info == null) {
+                android.widget.Toast.makeText(this@TvMainActivity, "You're up to date!", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                showUpdateAvailableDialog(info)
+            }
+        }
+    }
+
+    private fun showUpdateAvailableDialog(info: UpdateChecker.UpdateInfo) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Update available — ${info.version}")
+            .setMessage("A new version of MediaFlow Proxy is available. Download and install now?")
+            .setPositiveButton("Download") { _, _ -> startUpdateDownload(info.downloadUrl) }
+            .setNegativeButton("Later", null)
+            .show()
+    }
+
+    private var downloadJob: Job? = null
+
+    private fun startUpdateDownload(url: String) {
+        if (!UpdateInstaller.canInstall(this)) {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Allow installation")
+                .setMessage(
+                    "To install updates, enable \"Install unknown apps\" for this app " +
+                        "in system settings, then try again."
+                )
+                .setPositiveButton("Open Settings") { _, _ ->
+                    UpdateInstaller.requestInstallPermission(this)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            return
+        }
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Downloading update…")
+            .setMessage("0%")
+            .setCancelable(false)
+            .setNegativeButton("Cancel") { _, _ -> downloadJob?.cancel() }
+            .show()
+
+        downloadJob = lifecycleScope.launch {
+            val file = UpdateInstaller.download(this@TvMainActivity, url) { pct ->
+                withContext(Dispatchers.Main) { dialog.setMessage("$pct%") }
+            }
+            dialog.dismiss()
+            if (file != null) {
+                UpdateInstaller.install(this@TvMainActivity, file)
+            } else {
+                android.widget.Toast.makeText(
+                    this@TvMainActivity,
+                    "Download failed — check your connection.",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
     private fun startProxyServiceNow(intent: Intent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -368,7 +454,7 @@ class TvMainActivity : FragmentActivity() {
 // ---------------------------------------------------------------------------
 
 internal enum class ActionId {
-    TOGGLE, OPEN_URL, LOGS, METRICS,
+    TOGGLE, OPEN_URL, LOGS, METRICS, CHECK_UPDATE,
     PORT, PASSWORD, AUTO_START,
     ALL_SETTINGS, IMPORT, EXPORT,
 }

@@ -19,10 +19,30 @@ import android.provider.Settings
  */
 object BatteryOptimization {
 
-    /** True if this package is already on the Doze whitelist. */
+    /**
+     * True if this package is already on the Doze whitelist, OR if the device
+     * doesn't expose battery-optimisation settings at all (e.g. Amazon Fire TV).
+     * On devices like Fire TV, neither battery settings intent resolves — there
+     * is no Doze / battery management surface, so no exemption is needed.
+     */
     fun isIgnored(ctx: Context): Boolean {
+        if (!canRequestExemption(ctx)) return true
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return true
         return pm.isIgnoringBatteryOptimizations(ctx.packageName)
+    }
+
+    /**
+     * Returns false on devices (e.g. Fire TV) where neither the direct exemption
+     * dialog nor the battery settings screen is available.  When false the caller
+     * should skip the permission requirement entirely.
+     */
+    fun canRequestExemption(ctx: Context): Boolean {
+        val pm = ctx.packageManager
+        val direct = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${ctx.packageName}")
+        }
+        val fallback = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        return pm.resolveActivity(direct, 0) != null || pm.resolveActivity(fallback, 0) != null
     }
 
     /**

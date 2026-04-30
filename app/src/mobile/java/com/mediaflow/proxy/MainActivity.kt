@@ -27,6 +27,9 @@ import com.mediaflow.proxy.ui.StatusFragment
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.mediaflow.proxy.UpdateChecker
+import com.mediaflow.proxy.UpdateInstaller
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
 
@@ -114,6 +117,27 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             binding.bottomNav.selectedItemId = R.id.nav_status
         }
+
+        checkForUpdatesSilent()
+    }
+
+    private fun checkForUpdatesSilent() {
+        lifecycleScope.launch {
+            val info = UpdateChecker.check(this@MainActivity, force = false) ?: return@launch
+            if (!isFinishing) showUpdateDialog(info)
+        }
+    }
+
+    internal fun showUpdateDialog(info: UpdateChecker.UpdateInfo) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Update available — ${info.version}")
+            .setMessage("A new version of MediaFlow Proxy is available. Download and install now?")
+            .setPositiveButton("Download") { _, _ ->
+                // Navigate to Config tab so the user sees download progress there
+                binding.bottomNav.selectedItemId = R.id.nav_config
+            }
+            .setNegativeButton("Later", null)
+            .show()
     }
 
     override fun onStart() {

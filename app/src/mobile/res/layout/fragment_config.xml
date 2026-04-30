@@ -422,5 +422,14 @@
             android:textColor="@color/material_on_surface_emphasis_medium"
             android:visibility="gone" />
 
+        <!-- ── App Update ────────────────────────────────────────────── -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_check_update"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Check for Updates"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+
     </LinearLayout>
 </ScrollView>

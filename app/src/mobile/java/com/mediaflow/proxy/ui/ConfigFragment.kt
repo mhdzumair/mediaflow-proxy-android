@@ -15,12 +15,16 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mediaflow.proxy.ConfigRepository
 import com.mediaflow.proxy.ConfigSerializer
 import com.mediaflow.proxy.MainActivity
 import com.mediaflow.proxy.ProxyConfig
+import com.mediaflow.proxy.UpdateChecker
+import com.mediaflow.proxy.UpdateInstaller
 import com.mediaflow.proxy.databinding.FragmentConfigBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,6 +102,75 @@ class ConfigFragment : Fragment() {
             importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
         }
         binding.btnExportConfig.setOnClickListener { exportConfig() }
+        binding.btnCheckUpdate.setOnClickListener { checkForUpdates() }
+    }
+
+    private fun checkForUpdates() {
+        binding.btnCheckUpdate.isEnabled = false
+        binding.btnCheckUpdate.text = "Checking…"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val info = UpdateChecker.check(requireContext(), force = true)
+            binding.btnCheckUpdate.isEnabled = true
+            binding.btnCheckUpdate.text = "Check for Updates"
+            if (info == null) {
+                Toast.makeText(requireContext(), "You're up to date!", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            showUpdateDialog(info)
+        }
+    }
+
+    private fun showUpdateDialog(info: UpdateChecker.UpdateInfo) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Update available — ${info.version}")
+            .setMessage("A new version is available. Download and install now?")
+            .setPositiveButton("Download") { _, _ -> startDownload(info.downloadUrl) }
+            .setNegativeButton("Later", null)
+            .show()
+    }
+
+    private var downloadJob: Job? = null
+
+    private fun startDownload(url: String) {
+        val ctx = requireContext()
+        if (!UpdateInstaller.canInstall(ctx)) {
+            MaterialAlertDialogBuilder(ctx)
+                .setTitle("Allow installation")
+                .setMessage(
+                    "To install updates, enable \"Install unknown apps\" for this app " +
+                        "in the system settings, then try again."
+                )
+                .setPositiveButton("Open Settings") { _, _ ->
+                    UpdateInstaller.requestInstallPermission(ctx)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            return
+        }
+
+        val progressView = android.widget.TextView(ctx).apply {
+            setPadding(64, 32, 64, 32)
+            text = "0%"
+            textSize = 16f
+        }
+        val dialog = MaterialAlertDialogBuilder(ctx)
+            .setTitle("Downloading update…")
+            .setView(progressView)
+            .setCancelable(false)
+            .setNegativeButton("Cancel") { _, _ -> downloadJob?.cancel() }
+            .show()
+
+        downloadJob = viewLifecycleOwner.lifecycleScope.launch {
+            val file = UpdateInstaller.download(ctx, url) { pct ->
+                withContext(Dispatchers.Main) { progressView.text = "$pct%" }
+            }
+            dialog.dismiss()
+            if (file != null) {
+                UpdateInstaller.install(ctx, file)
+            } else {
+                Toast.makeText(ctx, "Download failed — check your connection.", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // ----- Import / Export -------------------------------------------------
